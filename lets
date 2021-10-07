@@ -1,0 +1,19 @@
+awk -v cmd='openssl x509 -noout -subject' ' /BEGIN/{close(cmd)};{print | cmd}' < /etc/ssl/certs/ca-certificates.crt | grep "ISRG Root X1"
+
+curl -k https://letsencrypt.org/certs/isrgrootx1.pem.txt | sudo tee /usr/share/ca-certificates/mozilla/ISRG_Root_X1.crt
+
+
+mozilla/ISRG_Root_X1.crt
+
+
+update-ca-certificates
+
+
+/etc/ca-certificates.conf 
+
+
+!mozilla/DST_Root_CA_X3.crt
+
+update-ca-certificates
+
+
