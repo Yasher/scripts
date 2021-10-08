@@ -1,0 +1,174 @@
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10;type=cert
+[p11-kit-object-v1]
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+trusted: false
+certificate-category: authority
+java-midp-security-domain: 0
+url: ""
+hash-of-subject-public-key: "%a8%e3%02%96p%a6%8bW%eb%ec%ef%cc%29N%91t%9a%d4%928"
+hash-of-issuer-public-key: ""
+check-value: "%da%c9%02"
+subject: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+start-date: "20000930"
+end-date: "20210930"
+modifiable: false
+x-distrusted: true
+-----BEGIN CERTIFICATE-----
+MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/
+MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
+DkRTVCBSb290IENBIFgzMB4XDTAwMDkzMDIxMTIxOVoXDTIxMDkzMDE0MDExNVow
+PzEkMCIGA1UEChMbRGlnaXRhbCBTaWduYXR1cmUgVHJ1c3QgQ28uMRcwFQYDVQQD
+Ew5EU1QgUm9vdCBDQSBYMzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB
+AN+v6ZdQCINXtMxiZfaQguzH0yxrMMpb7NnDfcdAwRgUi+DoM3ZJKuM/IUmTrE4O
+rz5Iy2Xu/NMhD2XSKtkyj4zl93ewEnu1lcCJo6m67XMuegwGMoOifooUMM0RoOEq
+OLl5CjH9UL2AZd+3UWODyOKIYepLYYHsUmu5ouJLGiifSKOeDNoJjj4XLh7dIN9b
+xiqKqy69cK3FCxolkHRyxXtqqzTWMIn/5WgTe1QLyNau7Fqckh49ZLOMxt+/yUFw
+7BZy1SbsOFU5Q9D8/RhcQPGX69Wam40dutolucbY38EVAjqr2m7xPi71XAicPNaD
+aeQQmxkqtilX4+U9m5/wAl0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNV
+HQ8BAf8EBAMCAQYwHQYDVR0OBBYEFMSnsaR7LHH62+FLkHX/xBVghYkQMA0GCSqG
+SIb3DQEBBQUAA4IBAQCjGiybFwBcqR7uKGY3Or+Dxz9LwwmglSBd49lZRNI+DT69
+ikugdB/OEIKcdBodfpga3csTS7MgROSR6cz8faXbauX+5v3gTt23ADq1cEmv8uXr
+AvHRAosZy5Q6XkjEGB5YGV8eAlrwDPGxrancWYaLbumR9YbK+rlmM6pZW87ipxZz
+R8srzJmwN0jP41ZL9c8PDHIyh8bwRLtTcm1D9SZImlJnt1ir/md2cXjbDaJWFBM5
+JDGFoqgCWjBH4d1QB7wCCZAA62RjYJsWvIjJEubSfZGL+T0yjWW06XyxV3bqxbYo
+Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ
+-----END CERTIFICATE-----
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: nss-trust
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+subject: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+trust-digital-signature: nss-not-trusted
+trust-non-repudiation: nss-not-trusted
+trust-key-encipherment: nss-not-trusted
+trust-data-encipherment: nss-not-trusted
+trust-key-agreement: nss-not-trusted
+trust-key-cert-sign: nss-not-trusted
+trust-crl-sign: nss-not-trusted
+trust-server-auth: nss-not-trusted
+trust-client-auth: nss-not-trusted
+trust-code-signing: nss-not-trusted
+trust-email-protection: nss-not-trusted
+trust-ipsec-end-system: nss-not-trusted
+trust-ipsec-tunnel: nss-not-trusted
+trust-ipsec-user: nss-not-trusted
+trust-time-stamping: nss-not-trusted
+trust-step-up-approved: "%00"
+cert-sha1-hash: "%da%c9%02OT%d8%f6%df%94%93_%b1s%268%caj%d7%7c%13"
+cert-md5-hash: "A%03R%dc%0f%f7P%1b%16%f0%02%8e%baoE%c5"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.1"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.2"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.3"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.4"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.5"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.6"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.7"
+
+
+# pkcs11:id=%c4%a7%b1%a4%7b%2c%71%fa%db%e1%4b%90%75%ff%c4%15%60%85%89%10
+[p11-kit-object-v1]
+class: x-trust-assertion
+private: false
+label: "DST Root CA X3"
+issuer: "0%3f1%240%22%06%03U%04%0a%13%1bDigital Signature Trust Co.1%170%15%06%03U%04%03%13%0eDST Root CA X3"
+serial-number: "%02%10D%af%b0%80%d6%a3%27%ba%8909%86.%f8%40k"
+id: "%c4%a7%b1%a4%7b%2cq%fa%db%e1K%90u%ff%c4%15%60%85%89%10"
+modifiable: false
+x-assertion-type: x-distrusted-certificate
+x-purpose: "1.3.6.1.5.5.7.3.8"
+
