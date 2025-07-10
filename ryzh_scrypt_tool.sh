@@ -4,7 +4,12 @@
 analyze_bots() {
     echo "Запущен анализ логов по ботам..."
     # Здесь вставляем твой скрипт, например:
-    /root/scripts/analyze_bots.sh
+      echo "Запущен анализ логов по ботам..."
+    tmp_file="/tmp/parse_log_bot.sh"
+    wget -q --no-check-certificate -O "$tmp_file" "https://raw.githubusercontent.com/Yasher/scripts/refs/heads/main/parse_log_bot.sh"
+    chmod +x "$tmp_file"
+    "$tmp_file"
+    rm -f "$tmp_file"
 }
 
 # Функция для анализа по IP
