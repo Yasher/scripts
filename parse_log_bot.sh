@@ -10,19 +10,19 @@ www_root_logs_dirs=(/var/www/*/data/logs)
 main_files=()
 while IFS= read -r -d '' file; do
     main_files+=("$file")
-done < <(find "$httpd_logs_dir" -type f -name "*.access.log" -print0 2>/dev/null)
+done < <(find "$httpd_logs_dir" -type f -name "*access.log" -print0 2>/dev/null)
 
 while IFS= read -r -d '' file; do
     main_files+=("$file")
-done < <(find "$nginx_logs_dir" -type f -name "*.access.log" -print0 2>/dev/null)
+done < <(find "$nginx_logs_dir" -type f -name "*access.log" -print0 2>/dev/null)
 
 while IFS= read -r -d '' file; do
     main_files+=("$file")
-done < <(find "$apache2_logs_dir" -type f -name "*.access.log" -print0 2>/dev/null)
+done < <(find "$apache2_logs_dir" -type f -name "*access.log" -print0 2>/dev/null)
 
 while IFS= read -r -d '' file; do
     main_files+=("$file")
-done < <(find "$httpd_logs2_dir" -type f -name "*.access.log" -print0 2>/dev/null)
+done < <(find "$httpd_logs2_dir" -type f -name "*access.log" -print0 2>/dev/null)
 
 # Добавляем пункт для директорий /var/www/*/data/logs
 main_files+=("/var/www/*/data/logs")
@@ -49,7 +49,7 @@ if [ "$selected_main" = "/var/www/*/data/logs" ]; then
         [ -d "$dir" ] || continue
         while IFS= read -r -d '' file; do
             sub_files_unsorted+=("$file")
-        done < <(find "$dir" -type f \( -name "*.access.log" -o -name "*.access.log.*.gz" \) -print0 2>/dev/null)
+        done < <(find "$dir" -type f \( -name "*access.log" -o -name "*.access.log.*.gz" \) -print0 2>/dev/null)
     done
 
     # Сортируем файлы по natural version
