@@ -24,10 +24,11 @@ while IFS= read -r -d '' file; do
     main_files+=("$file")
 done < <(find "$httpd_logs2_dir" -type f -name "*access.log" -print0 2>/dev/null)
 
-# Добавляем пункт для директорий /var/www/*/data/logs
+# Добавляем пункт для директорий и ручного ввода
 main_files+=("/var/www/*/data/logs")
+main_files+=("Ввести путь вручную")
 
-echo "Найдено следующие лог-файлы:"
+echo "Найдены следующие лог-файлы:"
 for i in "${!main_files[@]}"; do
     printf "%3d) %s\n" "$i" "${main_files[$i]}"
 done
@@ -42,8 +43,18 @@ fi
 
 selected_main="${main_files[$main_choice]}"
 
-# Проверяем, выбрана ли "директория"
-if [ "$selected_main" = "/var/www/*/data/logs" ]; then
+# --- Новый пункт: ручной ввод пути ---
+if [ "$selected_main" = "Ввести путь вручную" ]; then
+    echo -n "Введите полный путь к лог-файлу: "
+    read manual_path
+    if [ ! -f "$manual_path" ]; then
+        echo "Файл не найден: $manual_path"
+        exit 1
+    fi
+    selected_file="$manual_path"
+
+# --- Выбор из /var/www/*/data/logs ---
+elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
     sub_files_unsorted=()
     for dir in "${www_root_logs_dirs[@]}"; do
         [ -d "$dir" ] || continue
@@ -52,7 +63,7 @@ if [ "$selected_main" = "/var/www/*/data/logs" ]; then
         done < <(find "$dir" -type f \( -name "*access.log" -o -name "*.access.log.*.gz" \) -print0 2>/dev/null)
     done
 
-    # Сортируем файлы по natural version
+    # Сортировка natural version
     IFS=$'\n' sorted_files=($(printf "%s\n" "${sub_files_unsorted[@]}" | sort -V))
     unset IFS
 
@@ -90,7 +101,7 @@ else
     grep_cmd="grep"
 fi
 
-# Команда
+# Команда анализа
 cmd="$grep_cmd -oiE '\"[^\"]+\"' \"$selected_file\" | $grep_cmd -oiE '\\b[a-zA-Z0-9./;+_-]*bot[a-zA-Z0-9./;+_-]*\\b' | sort | uniq -c | sort -nr | head -n20"
 
 echo "Будет выполнена команда:"
