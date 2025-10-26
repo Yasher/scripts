@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 httpd_logs_dir="/var/www/httpd-logs"
 nginx_logs_dir="/var/log/nginx"
@@ -6,116 +7,192 @@ apache2_logs_dir="/var/log/apache2"
 httpd_logs2_dir="/var/log/httpd"
 www_root_logs_dirs=(/var/www/*/data/logs)
 
-# ---------- утилиты ----------
-# size_bytes -> "2,3M"
-human_size() {
+# ---------- utils ----------
+human_size() { # bytes -> '42,6K' / '2,3M' / '0B'
     local bytes="$1"
-    local unit=""
-    local value=0
-    local div=1
-    if   [ "$bytes" -ge 1152921504606846976 ]; then unit="E"; div=1152921504606846976
-    elif [ "$bytes" -ge 1125899906842624 ];   then unit="P"; div=1125899906842624
-    elif [ "$bytes" -ge 1099511627776 ];     then unit="T"; div=1099511627776
-    elif [ "$bytes" -ge 1073741824 ];        then unit="G"; div=1073741824
-    elif [ "$bytes" -ge 1048576 ];           then unit="M"; div=1048576
-    elif [ "$bytes" -ge 1024 ];              then unit="K"; div=1024
-    else echo "${bytes}B"; return; fi
-
-    # одна цифра после запятой и запятая как разделитель
-    value=$(awk -v b="$bytes" -v d="$div" 'BEGIN{printf("%.1f", b/d)}')
-    echo "${value/,/.}" | sed 's/\./,/' | sed 's/,\([0]\)$//; s/,0$//' | awk -v u="$unit" '{printf "%s%s", $0, u}'
-}
-
-# кроссплатформенный stat размера (Linux/BSD)
-file_size_bytes() {
-    local f="$1"
-    if command -v stat >/dev/null 2>&1; then
-        if stat -c%s "$f" >/dev/null 2>&1; then
-            stat -c%s "$f"
-        elif stat -f%z "$f" >/dev/null 2>&1; then
-            stat -f%z "$f"
-        else
-            echo 0
-        fi
+    if [[ "$bytes" -eq 0 ]]; then
+        echo "0B"
+        return
+    fi
+    if command -v numfmt >/dev/null 2>&1; then
+        # один знак после запятой, заменяем точку на запятую
+        local out
+        out=$(numfmt --to=iec --format="%.1f" "$bytes")
+        out=${out/./,}
+        echo "$out"
     else
-        echo 0
+        # fallback awk
+        awk -v b="$bytes" '
+        function fmt(x,u){printf("%.1f%s",x,u)}
+        BEGIN{
+          if(b<1024){printf "%dB",b; exit}
+          if(b<1048576){fmt(b/1024,"K"); exit}
+          if(b<1073741824){fmt(b/1048576,"M"); exit}
+          if(b<1099511627776){fmt(b/1073741824,"G"); exit}
+          fmt(b/1099511627776,"T")
+        }' | sed 's/\./,/'
     fi
 }
 
-# собрать список файлов + размеры -> отсортировать по размеру убыв.
-# выводит в stdout строки: "<size_bytes>\t<path>"
-collect_and_sort_by_size() {
-    local arr=("$@")
-    local path
-    for path in "${arr[@]}"; do
-        [ -f "$path" ] || continue
-        local sz
-        sz=$(file_size_bytes "$path")
-        echo -e "${sz}\t${path}"
-    done | sort -nr -k1,1
+size_bytes_of() { # path -> bytes (целое)
+    # stat -c%s кросс-дистрибутивно; если нет - используем wc -c
+    if stat --help >/dev/null 2>&1; then
+        stat -c%s -- "$1" 2>/dev/null || echo 0
+    else
+        wc -c <"$1" 2>/dev/null || echo 0
+    fi
 }
 
-# ---------- сбор главного списка ----------
-main_candidates=()
+print_menu() {
+    echo "Найдены следующие лог-файлы (по убыванию размера):"
+    local i=0
+    while IFS=$'\t' read -r bytes path; do
+        local hs
+        hs=$(human_size "$bytes")
+        printf " %3d) %s %s\n" "$i" "$path" "$hs"
+        ((i++))
+    done <<<"$MENU_SORTED"
+    printf " %3d) %s\n" "$i" "/var/www/*/data/logs"
+    ((i++))
+    printf " %3d) %s\n" "$i" "Ввести путь вручную"
+}
 
-while IFS= read -r -d '' f; do main_candidates+=("$f"); done < <(find "$httpd_logs_dir"  -type f -name "*access.log" -print0 2>/dev/null)
-while IFS= read -r -d '' f; do main_candidates+=("$f"); done < <(find "$nginx_logs_dir"  -type f -name "*access.log" -print0 2>/dev/null)
-while IFS= read -r -d '' f; do main_candidates+=("$f"); done < <(find "$apache2_logs_dir" -type f -name "*access.log" -print0 2>/dev/null)
-while IFS= read -r -d '' f; do main_candidates+=("$f"); done < <(find "$httpd_logs2_dir" -type f -name "*access.log" -print0 2>/dev/null)
+# ---------- собираем основной список логов ----------
+# Собираем все *access.log из стандартных мест
+collect_dirs=("$httpd_logs_dir" "$nginx_logs_dir" "$apache2_logs_dir" "$httpd_logs2_dir")
 
-# отсортированные файлы по размеру
-mapfile -t main_sorted_lines < <(collect_and_sort_by_size "${main_candidates[@]}")
-
-# соберём массивы путей и человеко-размеров для меню
-main_files=()
-main_sizes=()
-
-for line in "${main_sorted_lines[@]}"; do
-    size_bytes="${line%%$'\t'*}"
-    path="${line#*$'\t'}"
-    main_files+=("$path")
-    main_sizes+=("$(human_size "$size_bytes")")
+declare -a main_candidates=()
+for d in "${collect_dirs[@]}"; do
+    [[ -d "$d" ]] || continue
+    while IFS= read -r -d '' f; do
+        main_candidates+=("$f")
+    done < <(find "$d" -type f -name "*access.log" -print0 2>/dev/null)
 done
 
-# Добавляем спец-пункты (не сортируются среди файлов)
-special_dir="/var/www/*/data/logs"
-special_manual="Ввести путь вручную"
-main_files+=("$special_dir" "$special_manual")
-main_sizes+=("" "")  # пустые размеры для спец-пунктов
+# Уникализируем
+if ((${#main_candidates[@]})); then
+    IFS=$'\n' read -r -d '' -a main_candidates < <(printf "%s\n" "${main_candidates[@]}" | sort -u && printf '\0')
+fi
 
-# ---------- меню ----------
-echo "Найдены следующие лог-файлы (по убыванию размера):"
-for i in "${!main_files[@]}"; do
-    if [ -n "${main_sizes[$i]}" ]; then
-        printf "%3d) %s %s\n" "$i" "${main_files[$i]}" "${main_sizes[$i]}"
-    else
-        printf "%3d) %s\n" "$i" "${main_files[$i]}"
-    fi
+# Считаем размеры и готовим к сортировке
+MENU_DATA=""
+for f in "${main_candidates[@]}"; do
+    bytes=$(size_bytes_of "$f")
+    MENU_DATA+="${bytes}"$'\t'"${f}"$'\n'
 done
 
-echo -n "Введите номер для анализа: "
-read main_choice
-if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ]; then
+# Сортируем по убыванию размера
+MENU_SORTED=$(printf "%s" "$MENU_DATA" | LC_ALL=C sort -nr -k1,1 2>/dev/null || true)
+
+# ---------- печать меню ----------
+print_menu
+
+# ---------- выбор основного пункта ----------
+read -r -p "Введите номер для анализа: " main_choice
+
+# считаем количество строк файлов
+FILES_COUNT=$(printf "%s" "$MENU_SORTED" | sed -n '$=')
+# индексы специальных пунктов
+IDX_DIR=$FILES_COUNT
+IDX_MANUAL=$((FILES_COUNT + 1))
+
+# валидация
+if ! [[ "$main_choice" =~ ^[0-9]+$ ]]; then
+    echo "Неверный номер."
+    exit 1
+fi
+if (( main_choice < 0 || main_choice > IDX_MANUAL )); then
     echo "Неверный номер."
     exit 1
 fi
 
-selected_main="${main_files[$main_choice]}"
+selected_file=""
+selected_size_hr=""
 
 # ---------- обработка выбора ----------
-if [ "$selected_main" = "$special_manual" ]; then
-    # ручной путь
-    echo -n "Введите полный путь к лог-файлу: "
-    read manual_path
-    if [ ! -f "$manual_path" ]; then
+if (( main_choice == IDX_DIR )); then
+    # /var/www/*/data/logs — собираем все access логи, включая .gz
+    sub_list=""
+    for dir in "${www_root_logs_dirs[@]}"; do
+        for real in $dir; do
+            [[ -d "$real" ]] || continue
+            while IFS= read -r -d '' f; do
+                bytes=$(size_bytes_of "$f")
+                sub_list+="${bytes}"$'\t'"${f}"$'\n'
+            done < <(find "$real" -type f \( -name "*access.log" -o -name "*.access.log.*.gz" \) -print0 2>/dev/null)
+        done
+    done
+
+    if [[ -z "${sub_list}" ]]; then
+        echo "В директориях нет подходящих файлов."
+        exit 1
+    fi
+
+    sub_sorted=$(printf "%s" "$sub_list" | LC_ALL=C sort -nr -k1,1)
+    echo
+    echo "Файлы в /var/www/*/data/logs (отсортированы по убыванию размера):"
+
+    i=0
+    declare -a SUB_ROWS=()
+    while IFS=$'\t' read -r sbytes spath; do
+        SUB_ROWS+=("${sbytes}"$'\t'"${spath}")
+        hs=$(human_size "$sbytes")
+        printf " %3d) %s %s\n" "$i" "$spath" "$hs"
+        ((i++))
+    done <<<"$sub_sorted"
+
+    read -r -p "Введите номер файла для анализа: " sub_choice
+    if ! [[ "$sub_choice" =~ ^[0-9]+$ ]] || (( sub_choice < 0 )) || (( sub_choice >= ${#SUB_ROWS[@]} )); then
+        echo "Неверный номер."
+        exit 1
+    fi
+
+    row="${SUB_ROWS[$sub_choice]}"
+    sbytes="${row%%$'\t'*}"
+    spath="${row#*$'\t'}"
+    selected_file="$spath"
+    selected_size_hr=$(human_size "$sbytes")
+
+elif (( main_choice == IDX_MANUAL )); then
+    read -r -p "Введите полный путь к лог-файлу: " manual_path
+    if [[ ! -f "$manual_path" ]]; then
         echo "Файл не найден: $manual_path"
         exit 1
     fi
-    sizeb=$(file_size_bytes "$manual_path")
-    sizeh=$(human_size "$sizeb")
     selected_file="$manual_path"
-    echo "Вы выбрали файл: $selected_file  $sizeh"
-    echo
+    selected_size_hr=$(human_size "$(size_bytes_of "$selected_file")")
 
-elif [ "$selected_main" = "$special_dir" ]; then
-    # выбор из /var/www/*/data
+else
+    # обычный индекс из основного списка
+    # вытащим нужную строку
+    row=$(printf "%s" "$MENU_SORTED" | sed -n "$((main_choice+1))p")
+    bytes="${row%%$'\t'*}"
+    path="${row#*$'\t'}"
+    selected_file="$path"
+    selected_size_hr=$(human_size "$bytes")
+fi
+
+echo "Вы выбрали файл: $selected_file  $selected_size_hr"
+echo
+
+# ---------- выбор grep / zgrep ----------
+if [[ "$selected_file" == *.gz ]]; then
+    grep_cmd="zgrep"
+else
+    grep_cmd="grep"
+fi
+
+# ---------- команда анализа ----------
+cmd="$grep_cmd -oiE '\"[^\"]+\"' \"$selected_file\" \
+| $grep_cmd -oiE '\\b[a-zA-Z0-9./;+_-]*bot[a-zA-Z0-9./;+_-]*\\b' \
+| sort | uniq -c | sort -nr | head -n20"
+
+echo "Будет выполнена команда:"
+echo "$cmd"
+echo
+echo "Результат:"
+echo
+
+# ---------- выполнение ----------
+# shellcheck disable=SC2086
+eval "$cmd"
