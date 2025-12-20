@@ -1,0 +1,356 @@
+#!/bin/bash
+
+# Bitrix Reg Security Fix v.0.0.5 beta - защита от уязвимости регистрации
+# 1. .htaccess - блокирует регистрацию пользовталей в ядре 1С Битрикс через демо-скрипты Bitrix
+# 2. MySQL - удаляет пользователей bitrixsupport_* с подтверждением
+# 3. nginx - блокирует все ?register=yes запросы с подтверждением
+#            может сломать некоторые скрипты на сайте
+#            перед использованием нужно проконсультироваться с разработчиком
+#
+# Автоматически определяет Bitrix Env, Docker, ISP Manager, проверяет nginx синтаксис до и после правок
+# Применение скрипта на свой страх и риск
+#
+# Дебаг
+# set -x -v
+
+red="$(tput setaf 1)$(tput bold)"
+green="$(tput setaf 2)$(tput bold)"
+reset="$(tput sgr0)"
+
+# show script version
+self_current_version="Bitrix Reg Security Fix v.0.0.5 beta"
+printf "\n${green}$self_current_version\n${reset}"
+
+# check privileges
+if [[ $EUID -ne 0 ]]; then
+	printf "\n${red}ERROR${reset} - This script must be run as root" 
+	exit 1
+fi
+
+# one instance run lock
+LOCKFILE=/tmp/bitrix_reg_fix.lock
+exec 9>$LOCKFILE
+
+if ! flock -n 9; then
+    echo
+    if command -v lsof >/dev/null 2>&1; then
+        PID=$(lsof -t "$LOCKFILE" 2>/dev/null | grep -v "^$$\$" | head -n1)
+        printf "%s is ${red}already locked${reset} by PID %s\n\n" "$LOCKFILE" "$PID"
+    elif command -v fuser >/dev/null 2>&1; then
+        PID=$(fuser "$LOCKFILE" 2>/dev/null | tr ' ' '\n' | grep -v "^$$\$" | head -n1)
+        printf "%s is ${red}already locked${reset} by PID %s\n\n" "$LOCKFILE" "$PID"
+    else
+        printf "%s ${red}already exists${reset}\n\nInstall 'lsof -t' or 'fuser' to see the PID.\n" "$LOCKFILE"
+    fi
+    exit 1
+fi
+
+trap 'exec 9>&-; rm -f "$LOCKFILE"' EXIT
+
+bitrix_fix_reg_paths () {
+    echo
+    if ! command -v nginx &> /dev/null; then
+        echo "${red}ERROR.${reset} Nginx was not found"
+        return 1
+    fi
+
+    echo "${green}Checking nginx paths${reset}" && echo
+
+    htaccess_directives=("Order allow,deny" "Deny from all")
+    
+    # Define relative paths to check/create .htaccess files
+    rel_paths=(bitrix/wizards/bitrix/demo/public_files/ru/auth/.htaccess \
+               bitrix/wizards/bitrix/demo/modules/examples/public/language/ru/examples/custom-registration/.htaccess \
+               bitrix/wizards/bitrix/demo/modules/examples/public/language/ru/examples/my-components/.htaccess \
+               bitrix/wizards/bitrix/demo/modules/subscribe/public/personal/subscribe/.htaccess \
+               install/wizards/bitrix/infoportal/site/public/ru/personal/profile/.htaccess \
+               install/wizards/bitrix/infoportal/site/public/ru/board/my/.htaccess)
+    
+    # Find all nginx root directives (standard root)
+    mapfile -t roots < <(grep -RhoP '^\s*root\s+"?\K[^";]+' /etc/nginx | tr -d '"' | sort -u)
+    
+    # Find all nginx root_path directives (set $root_path)
+    mapfile -t root_paths < <(grep -RiIn "root_path " /etc/nginx | grep -oP 'set \$\w+\s+\K[^;]+' | tr -d ';' | tr -d '"' | sort -u)
+    
+    # Combine both types of paths
+    all_paths=("${roots[@]}" "${root_paths[@]}")
+    
+    # Remove duplicates while preserving order
+    declare -A seen
+    unique_paths=()
+    for path in "${all_paths[@]}"; do
+        if [[ ! "${seen[$path]}" ]]; then
+            seen["$path"]=1
+            unique_paths+=("$path")
+        fi
+    done
+    
+    targets=()
+    
+    for root in "${unique_paths[@]}"
+    do
+        # Clean up path (remove trailing spaces/special characters)
+        root=$(echo "$root" | xargs)
+        
+        for rel in "${rel_paths[@]}"
+        do
+            f="$root/$rel"
+            d="$(dirname "$f")"
+            
+            # Check if directory exists
+            if [ -d "$d" ]; then
+                if [ -f "$f" ]; then
+                    all_directives_exist=true
+                    for directive in "${htaccess_directives[@]}"; do
+                        if ! grep -q "^[[:space:]]*$directive" "$f"; then
+                            all_directives_exist=false
+                            break
+                        fi
+                    done
+                    
+                    if [ "$all_directives_exist" = false ]; then
+                        printf '[DRY-RUN] would update: %s %s(file exists and will be updated)%s\n' "$f" "$green" "$reset"
+                        targets+=("$f")
+                    fi
+                else
+                    printf '[DRY-RUN] would create: %s %s(not exist, will be created)%s\n' "$f" "$green" "$reset"
+                    targets+=("$f")
+                fi
+            fi
+        done
+    done
+    
+    [ "${#targets[@]}" -ne 0 ] && {
+        printf '\nApply changes? [Y/n]: '
+        read -r ans
+        case "${ans:-Y}" in
+            Y | y)
+                for f in "${targets[@]}"
+                do
+                    if [ -f "$f" ]; then
+                        temp_file="$(mktemp)"
+                        printf "Order allow,deny\nDeny from all\n\n" > "$temp_file"
+                        \cat "$f" >> "$temp_file"
+                        temp_result="$(mktemp)"
+                        \head -n 2 "$temp_file" > "$temp_result"
+                        \tail -n +3 "$temp_file" | \
+                        \grep -v "^[[:space:]]*Order allow,deny$" | \
+                        \grep -v "^[[:space:]]*Deny from all$" >> "$temp_result"
+                        \mv -f "$temp_result" "$f"
+                        \rm -f "$temp_file"
+                        printf '[OK] updated: %s\n' "$f"
+                    else
+                        mkdir -p "$(dirname "$f")"
+                        printf "Order allow,deny\nDeny from all\n\n" > "$f"
+                        printf '[OK] created: %s\n' "$f"
+                    fi
+                done
+            ;;
+            *)
+                printf 'Aborted\n'
+            ;;
+        esac
+    } || printf "${green}No Bitrix paths found in nginx that need updating${reset}\n"
+}
+
+mysql_all_db_del_bitrixsupport () {
+	echo
+
+	found_any=0
+	mysql_accessible=0
+
+	check_mysql_connection() {
+		local container_id="$1"
+		if [[ -n "$container_id" ]]; then
+			docker exec "$container_id" mysql -e "SELECT 1;" &>/dev/null
+		else
+			mysql -e "SELECT 1;" &>/dev/null
+		fi
+	}
+
+	process_deletion_confirm() {
+		local db="$1"
+		local container_id="$2"
+		local container_image="$3"
+
+		echo -e "${red}Found bitrixsupport_% users${reset}\nDatabase: $db\nContainer: ${container_image:-local} (${container_id:-host})\n"
+
+		if [[ -n "$container_id" ]]; then
+			docker exec "$container_id" mysql -e \
+			"USE $db; SELECT ID,LOGIN,DATE_REGISTER FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" | column -t 2>/dev/null
+		else
+			mysql -e \
+			"USE $db; SELECT ID,LOGIN,DATE_REGISTER FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" | column -t 2>/dev/null
+		fi
+
+		echo
+		read -r -p "Delete these users from $db? [Y/n] " yn </dev/tty
+		yn=${yn:-Y}
+
+		if [[ "$yn" =~ ^[Yy]$ ]]; then
+			if [[ -n "$container_id" ]]; then
+				docker exec "$container_id" mysql -N -e \
+				"USE $db; DELETE FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" 2>/dev/null
+			else
+				mysql -N -e \
+				"USE $db; DELETE FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" 2>/dev/null
+			fi
+
+			if [[ -n "$container_id" ]]; then
+				remaining=$(docker exec "$container_id" mysql -N -e \
+				"USE $db; SELECT COUNT(*) FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" 2>/dev/null)
+			else
+				remaining=$(mysql -N -e \
+				"USE $db; SELECT COUNT(*) FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" 2>/dev/null)
+			fi
+
+			if [[ "$remaining" -eq 0 ]]; then
+				echo -e "${green}No remaining bitrixsupport_% users in ${container_image:-local} $db (${container_id:-host})${reset}"
+				echo
+			else
+				echo -e "${red}Users still exist in $db${reset}"
+				echo
+			fi
+		else
+			echo "Skipping deletion for bitrixsupport_% users in ${container_image:-local} $db (${container_id:-host})"
+			echo
+		fi
+	}
+
+	# Docker MySQL
+	if command -v docker &>/dev/null; then
+		while read -r id image; do
+			echo "$image" | grep -qiE 'percona|mysql|mariadb' || continue
+
+			check_mysql_connection "$id" || {
+				echo "${red}ERROR.${reset} Cannot connect to MySQL in container $image ($id)"
+				continue
+			}
+
+			mysql_accessible=1
+
+			dbs=$(docker exec "$id" mysql -N -e "SHOW DATABASES" 2>/dev/null | \
+			      grep -Ev '^(information_schema|performance_schema|mysql|sys)')
+
+			while read -r db; do
+				[[ -z "$db" ]] && continue
+
+				docker exec "$id" mysql -N -e \
+				"USE $db; SHOW TABLES LIKE 'b_user';" 2>/dev/null | grep -q b_user || continue
+
+				users=$(docker exec "$id" mysql -N -e \
+				"USE $db; SELECT COUNT(*) FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" 2>/dev/null)
+
+				if [[ "$users" -gt 0 ]]; then
+					found_any=1
+					process_deletion_confirm "$db" "$id" "$image"
+				fi
+			done <<< "$dbs"
+		done < <(docker ps --format '{{.ID}} {{.Image}}')
+	fi
+
+	# Local MySQL
+	if command -v mysql &>/dev/null; then
+		check_mysql_connection "" || {
+			echo "${red}ERROR.${reset} Cannot connect to local MySQL"
+			return
+		}
+
+		mysql_accessible=1
+		dbs=$(mysql -N -e "SHOW DATABASES" 2>/dev/null | \
+		      grep -Ev '^(information_schema|performance_schema|mysql|sys)')
+
+		while read -r db; do
+			[[ -z "$db" ]] && continue
+
+			mysql -N -e "USE $db; SHOW TABLES LIKE 'b_user';" 2>/dev/null | grep -q b_user || continue
+
+			users=$(mysql -N -e \
+			"USE $db; SELECT COUNT(*) FROM b_user WHERE LOGIN LIKE 'bitrixsupport_%';" 2>/dev/null)
+
+			if [[ "$users" -gt 0 ]]; then
+				found_any=1
+				process_deletion_confirm "$db" "" ""
+			fi
+		done <<< "$dbs"
+	fi
+
+	[[ $found_any -eq 0 && $mysql_accessible -eq 1 ]] && \
+	echo -e "${green}Users like bitrixsupport_% were not found in any MySQL DBs${reset}"
+}
+
+block_all_register_in_nginx () {
+    echo
+    CONF_FILE="/etc/nginx/bx/conf/bitrix.conf"
+    DENY_CODE='# Deny 1C site user registration \nif ($arg_register = "yes") {\n  return 403;\n}\n'
+    MGR_BIN="/usr/local/mgr5/sbin/mgrctl"
+    
+    function check_nginx ()
+    {
+        nginx -t &> /dev/null
+    }
+    
+    function apply_fix ()
+    {
+        local target_file="$1" config_type="$2"
+        
+        # Check if fix already applied
+        grep -Eq '^[[:space:]]*if[[:space:]]*\(\$arg_register[[:space:]]*=[[:space:]]*"yes"\)' "$target_file" 2> /dev/null && {
+            echo "${green}\"?register=yes\" URL arguments already blocked in $target_file${reset}"
+            return 0
+        }
+        
+        echo "${red}DANGEROUS. Check with the developer first${reset}"
+        read -rp "Block all \"?register=yes\" URL arguments globally in nginx? [y/N]: " answer
+        answer=${answer:-N}
+        [[ ! "$answer" =~ ^[Yy]$ ]] && return 1
+        
+        if [[ "$config_type" == "direct" ]]
+        then
+            # Direct modification of nginx config
+            check_nginx || {
+                echo "${red}nginx -t failed before fix${reset}"
+                return 1
+            }
+            \cp -f "$target_file" "$target_file.bak"
+            echo -e "$DENY_CODE" > "$target_file.tmp"
+            cat "$target_file.bak" >> "$target_file.tmp"
+            \mv -f "$target_file.tmp" "$target_file"
+        else
+            # Create include file for ISP Manager
+            echo -e "$DENY_CODE" > "$target_file"
+        fi
+        
+        if check_nginx && systemctl restart nginx
+        then
+            echo -e "${green}All \"?register=yes\" URL arguments successfully blocked in $target_file${reset}\nNginx restarted successfully"
+            [[ "$config_type" == "direct" ]] && \rm -f "$target_file.bak"
+            return 0
+        else
+            echo "${red}nginx -t failed after fix${reset}"
+            [[ "$config_type" == "direct" ]] && \mv -f "$target_file.bak" "$target_file" || \rm -f "$target_file"
+            check_nginx && echo "${green}Reverting success. No changes was made.${reset}" || \
+                echo "${red}Nginx configtest error. Check nginx -t manually.${reset}"
+            return 1
+        fi
+    }
+    
+    # Main logic: apply fix based on environment
+    if [[ -f "$CONF_FILE" ]]
+    then
+        apply_fix "$CONF_FILE" "direct"
+    else
+        if [[ -x "$MGR_BIN" ]]
+        then
+            apply_fix "/etc/nginx/vhosts-includes/bitrix_reg_global_deny.conf" "include"
+        else
+            echo "${red}No /etc/nginx/bx/conf/bitrix.conf or ISP Manager were found. Cannot apply fix.${reset}"
+            return 1
+        fi
+    fi
+}
+
+# Execute all three security fixes
+bitrix_fix_reg_paths
+mysql_all_db_del_bitrixsupport
+block_all_register_in_nginx
