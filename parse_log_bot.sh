@@ -102,7 +102,7 @@ else
 fi
 
 # Команда анализа
-cmd="$grep_cmd -oiE '\"[^\"]+\"' \"$selected_file\" | $grep_cmd -oiE '\\b[a-zA-Z0-9./;+_-]*bot[a-zA-Z0-9./;+_-]*\\b' | sort | uniq -c | sort -nr | head -n20"
+cmd="$grep_cmd -oiE '\"[^\"]+\"' \"$selected_file\" | $grep_cmd -oiE '\\b[a-zA-Z0-9./;+_-]*(bot|meta|facebook)[a-zA-Z0-9./;+_-]*\\b' | sort | uniq -c | sort -nr | head -n20"
 
 echo "Будет выполнена команда:"
 echo "$cmd"
