@@ -4,32 +4,35 @@ set -euo pipefail
 
 FILE="/etc/nginx/vhosts-includes/bad_bot.conf"
 
-# Если файл уже существует — вывести и выйти
+CONTENT='if ($http_user_agent ~* (PerplexityBot|FriendlyCrawler|GPTBot|AhrefsBot|Amazonbot|PetalBot|SemrushBot|MJ12bot|Riddler|aiHitBot|trovitBot|Detectify|BLEXBot|dotbot|FlipboardProxy|rogerBot|LinkpadBot|Bytespider|Serpstatbot|ClaudeBot|Applebot)) {
+    return 410;
+}'
+
 if [[ -f "$FILE" ]]; then
-    echo "Файл уже существует. Содержимое:"
+    echo "Файл существует. Содержимое:"
     echo "--------------------------------"
     cat "$FILE"
     echo "--------------------------------"
     exit 0
 fi
 
-# Создаём директорию при необходимости
-mkdir -p "$(dirname "$FILE")"
+echo "Файл не найден: $FILE"
+read -r -p "Создать файл и перезагрузить nginx? [y/N]: " answer
 
-# Записываем содержимое
-cat > "$FILE" <<'EOF'
-if ($http_user_agent ~* (PerplexityBot|FriendlyCrawler|GPTBot|AhrefsBot|Amazonbot|PetalBot|SemrushBot|MJ12bot|Riddler|aiHitBot|trovitBot|Detectify|BLEXBot|dotbot|FlipboardProxy|rogerBot|LinkpadBot|Bytespider|Serpstatbot|ClaudeBot|Applebot)) {
-    return 410;
-}
-EOF
+if [[ "$answer" =~ ^[Yy]$ ]]; then
+    mkdir -p "$(dirname "$FILE")"
 
-echo "Файл создан: $FILE"
+    echo "$CONTENT" > "$FILE"
+    echo "Файл создан."
 
-# Проверка конфигурации nginx перед перезагрузкой
-if nginx -t; then
-    echo "Конфигурация nginx корректна. Перезагрузка..."
-    systemctl reload nginx
+    if nginx -t; then
+        echo "Конфигурация nginx корректна. Перезагрузка..."
+        systemctl reload nginx
+    else
+        echo "Ошибка в конфигурации nginx. Перезагрузка отменена."
+        exit 1
+    fi
 else
-    echo "Ошибка в конфигурации nginx. Перезагрузка отменена."
-    exit 1
+    echo "Отменено."
+    exit 0
 fi
