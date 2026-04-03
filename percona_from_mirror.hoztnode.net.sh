@@ -20,7 +20,7 @@ cat > /etc/yum.repos.d/percona-prel-release.repo << EOF
 [prel-release-noarch]
 name = Percona Release release/noarch YUM repository
 # baseurl = http://repo.percona.com/prel/yum/release/\$releasever/RPMS/noarch
-baseurl = https://mirror.hoztnode.net/percona/prel/yum/release/\$releasever/RPMS/noarch
+baseurl = https://mirror.hoztnode.net/percona/yum/release/\$releasever/RPMS/noarch
 enabled = 1
 gpgcheck = 1
 gpgkey = file:///etc/pki/rpm-gpg/PERCONA-PACKAGING-KEY
