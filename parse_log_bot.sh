@@ -60,7 +60,7 @@ elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
         [ -d "$dir" ] || continue
         while IFS= read -r -d '' file; do
             sub_files_unsorted+=("$file")
-        done < <(find "$dir" -type f \( -name "*access.log" -o -name "*.access.log.*.gz" \) -print0 2>/dev/null)
+        done < <(find "$dir" -type f \( -name "*access.log" -o -name "*.access.log*.gz" \) -print0 2>/dev/null)
     done
 
     # Сортировка natural version
