@@ -1,4 +1,5 @@
 #!/bin/bash
+while true; do
 
 httpd_logs_dir="/var/www/httpd-logs"
 nginx_logs_dir="/var/log/nginx"
@@ -33,12 +34,18 @@ for i in "${!main_files[@]}"; do
     printf "%3d) %s\n" "$i" "${main_files[$i]}"
 done
 
+echo "q) Выход"
 echo -n "Введите номер для анализа: "
 read main_choice
 
+
+if [[ "$main_choice" == "q" ]]; then
+    break
+fi
+
 if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ]; then
     echo "Неверный номер."
-    exit 1
+    continue
 fi
 
 selected_main="${main_files[$main_choice]}"
@@ -49,7 +56,7 @@ if [ "$selected_main" = "Ввести путь вручную" ]; then
     read manual_path
     if [ ! -f "$manual_path" ]; then
         echo "Файл не найден: $manual_path"
-        exit 1
+        continue
     fi
     selected_file="$manual_path"
 
@@ -69,7 +76,7 @@ elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
 
     if [ ${#sorted_files[@]} -eq 0 ]; then
         echo "В директориях нет подходящих файлов."
-        exit 1
+        continue
     fi
 
     echo
@@ -83,7 +90,7 @@ elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
 
     if ! [[ "$sub_choice" =~ ^[0-9]+$ ]] || [ "$sub_choice" -lt 0 ] || [ "$sub_choice" -ge "${#sorted_files[@]}" ]; then
         echo "Неверный номер."
-        exit 1
+        continue
     fi
 
     selected_file="${sorted_files[$sub_choice]}"
@@ -112,3 +119,8 @@ echo
 
 # Выполняем команду
 eval "$cmd"
+
+echo
+read -p "Нажмите Enter для возврата в меню..."
+clear
+done
