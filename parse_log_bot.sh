@@ -27,7 +27,7 @@ done < <(find "$httpd_logs2_dir" -type f -name "*access.log" -print0 2>/dev/null
 
 # Добавляем пункт для директорий и ручного ввода
 main_files+=("/var/www/*/data/logs")
-main_files+=("n) Ввести путь вручную")
+#main_files+=("n) Ввести путь вручную")
 
 echo "Найдены следующие лог-файлы:"
 for i in "${!main_files[@]}"; do
@@ -49,7 +49,6 @@ if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_ch
     continue
 fi
 
-selected_main="${main_files[$main_choice]}"
 
 # --- Новый пункт: ручной ввод пути ---
 #if [ "$selected_main" = "Ввести путь вручную" ]; then
@@ -61,6 +60,10 @@ if [[ "$main_choice" == "n" ]]; then
         continue
     fi
     selected_file="$manual_path"
+
+selected_main="${main_files[$main_choice]}"
+
+
 
 # --- Выбор из /var/www/*/data/logs ---
 elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
