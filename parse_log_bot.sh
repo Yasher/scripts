@@ -38,81 +38,91 @@ done
 
 echo "n) Ввести путь вручную"
 echo "q) Выход"
-echo -n "Введите номер для анализа: "
+echo -n "Введите номер: "
 read main_choice
 
+read main_choice
 
 if [[ "$main_choice" == "q" ]]; then
     break
 fi
 
-
-
-# --- Новый пункт: ручной ввод пути ---
-#if [ "$selected_main" = "Ввести путь вручную" ]; then
 if [[ "$main_choice" == "n" ]]; then
+
     echo -n "Введите полный путь к лог-файлу: "
     read manual_path
+
     if [ ! -f "$manual_path" ]; then
         echo "Файл не найден: $manual_path"
         continue
     fi
+
     selected_file="$manual_path"
 
+else
 
-if [[ "$main_choice" != "n" ]] && \
-(! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ] ); then
-    echo "Неверный номер."
-    continue
-fi
-
-
-
-
-
-
-
-selected_main="${main_files[$main_choice]}"
-
-
-
-# --- Выбор из /var/www/*/data/logs ---
-elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
-    sub_files_unsorted=()
-    for dir in "${www_root_logs_dirs[@]}"; do
-        [ -d "$dir" ] || continue
-        while IFS= read -r -d '' file; do
-            sub_files_unsorted+=("$file")
-        done < <(find "$dir" -type f \( -name "*access.log" -o -name "*.access.log*.gz" \) -print0 2>/dev/null)
-    done
-
-    # Сортировка natural version
-    IFS=$'\n' sorted_files=($(printf "%s\n" "${sub_files_unsorted[@]}" | sort -V))
-    unset IFS
-
-    if [ ${#sorted_files[@]} -eq 0 ]; then
-        echo "В директориях нет подходящих файлов."
-        continue
-    fi
-
-    echo
-    echo "Файлы в /var/www/*/data/logs (отсортированы):"
-    for i in "${!sorted_files[@]}"; do
-        printf "%3d) %s\n" "$i" "${sorted_files[$i]}"
-    done
-
-    echo -n "Введите номер файла для анализа: "
-    read sub_choice
-
-    if ! [[ "$sub_choice" =~ ^[0-9]+$ ]] || [ "$sub_choice" -lt 0 ] || [ "$sub_choice" -ge "${#sorted_files[@]}" ]; then
+    if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || \
+       [ "$main_choice" -lt 0 ] || \
+       [ "$main_choice" -ge "${#main_files[@]}" ]; then
         echo "Неверный номер."
         continue
     fi
 
-    selected_file="${sorted_files[$sub_choice]}"
-else
-    selected_file="$selected_main"
+    selected_main="${main_files[$main_choice]}"
+
+    if [ "$selected_main" = "/var/www/*/data/logs" ]; then
+
+        sub_files_unsorted=()
+
+        for dir in "${www_root_logs_dirs[@]}"; do
+            [ -d "$dir" ] || continue
+
+            while IFS= read -r -d '' file; do
+                sub_files_unsorted+=("$file")
+            done < <(
+                find "$dir" -type f \
+                    \( -name "*access.log" -o -name "*.access.log*.gz" \) \
+                    -print0 2>/dev/null
+            )
+        done
+
+        IFS=$'\n' sorted_files=($(printf "%s\n" "${sub_files_unsorted[@]}" | sort -V))
+        unset IFS
+
+        if [ ${#sorted_files[@]} -eq 0 ]; then
+            echo "В директориях нет подходящих файлов."
+            continue
+        fi
+
+        echo
+        echo "Файлы в /var/www/*/data/logs (отсортированы):"
+
+        for i in "${!sorted_files[@]}"; do
+            printf "%3d) %s\n" "$i" "${sorted_files[$i]}"
+        done
+
+        echo -n "Введите номер файла для анализа: "
+        read sub_choice
+
+        if ! [[ "$sub_choice" =~ ^[0-9]+$ ]] || \
+           [ "$sub_choice" -lt 0 ] || \
+           [ "$sub_choice" -ge "${#sorted_files[@]}" ]; then
+            echo "Неверный номер."
+            continue
+        fi
+
+        selected_file="${sorted_files[$sub_choice]}"
+
+    else
+
+        selected_file="$selected_main"
+
+    fi
+
 fi
+
+
+
 
 echo "Вы выбрали файл: $selected_file"
 echo
