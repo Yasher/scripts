@@ -78,7 +78,7 @@ echo "Результат:"
 echo
 
 # Выполняем команду
-eval "$cmd"
+#eval "$cmd"
 
 echo
 read -p "Нажмите Enter для возврата в меню..."
