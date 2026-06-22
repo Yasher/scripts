@@ -44,10 +44,6 @@ if [[ "$main_choice" == "q" ]]; then
     break
 fi
 
-if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ]; then
-    echo "Неверный номер."
-    continue
-fi
 
 
 # --- Новый пункт: ручной ввод пути ---
@@ -60,6 +56,13 @@ if [[ "$main_choice" == "n" ]]; then
         continue
     fi
     selected_file="$manual_path"
+
+
+if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ]; then
+    echo "Неверный номер."
+    continue
+fi
+
 
 selected_main="${main_files[$main_choice]}"
 
