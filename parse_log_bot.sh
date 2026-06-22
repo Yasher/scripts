@@ -32,37 +32,12 @@ else
 fi
 
 # Команда анализа
-if [[ "$selected_file" == *.gz ]]; then
-    cmd="zcat \"$selected_file\" | awk '
-    !/\" (403|444|410|429) / {
-        line=tolower(\$0)
 
-        while (match(line, /[a-z0-9.\/;+_-]*(bot|meta|facebook)[a-z0-9.\/;+_-]*/)) {
-            token=substr(line, RSTART, RLENGTH)
-            cnt[token]++
-            line=substr(line, RSTART+RLENGTH)
-        }
-    }
-    END {
-        for (i in cnt)
-            print cnt[i], i
-    }' | sort -nr | head -20"
-else
-    cmd="awk '
-    !/\" (403|444|410|429) / {
-        line=tolower(\$0)
 
-        while (match(line, /[a-z0-9.\/;+_-]*(bot|meta|facebook)[a-z0-9.\/;+_-]*/)) {
-            token=substr(line, RSTART, RLENGTH)
-            cnt[token]++
-            line=substr(line, RSTART+RLENGTH)
-        }
-    }
-    END {
-        for (i in cnt)
-            print cnt[i], i
-    }' \"$selected_file\" | sort -nr | head -20"
-fi
+
+
+
+
 #if [[ "$selected_file" == *.gz ]]; then
 #    cmd="zcat \"$selected_file\" \
 #    | awk '\$9 !~ /^(403|444|410|429)$/' \
@@ -74,7 +49,27 @@ fi
 #    | sort | uniq -c | sort -nr | head -n20"
 #fi
 
-#cmd="$grep_cmd -oiE '\"[^\"]+\"' \"$selected_file\" | $grep_cmd -oiE '\\b[a-zA-Z0-9./;+_-]*(bot|meta|facebook)[a-zA-Z0-9./;+_-]*\\b' | sort | uniq -c | sort -nr | head -n20"
+cmd="$grep_cmd -oiE '\"[^\"]+\"' \"$selected_file\" | $grep_cmd -oiE '\\b[a-zA-Z0-9./;+_-]*(bot|meta|facebook)[a-zA-Z0-9./;+_-]*\\b' | sort | uniq -c | sort -nr | head -n20"
+
+tmp=$(mktemp)
+
+eval "$cmd" > "$tmp"
+
+while read -r count bot; do
+
+    if [[ "$selected_file" == *.gz ]]; then
+        last5=$(zgrep -iF "$bot" "$selected_file" | tail -5)
+    else
+        last5=$(grep -iF "$bot" "$selected_file" | tail -5)
+    fi
+
+    if echo "$last5" | grep -qEv '" (403|444|410|429) '; then
+        printf "%8s %s\n" "$count" "$bot"
+    fi
+
+done < "$tmp"
+
+rm -f "$tmp"
 
 echo "Будет выполнена команда:"
 echo "$cmd"
