@@ -2,9 +2,9 @@
 #!/bin/bash
 
 
-ip=$(ss -pant| grep ihttp| awk '{printf $4}'| awk -F : '{printf $1}')
+ip=$(ss -pant| grep ihttp|head -n1| awk '{printf $4}'| awk -F : '{printf $1}')
 
-port=$(ss -pant| grep ihttp| awk '{printf $4}'| awk -F : '{printf $2}')
+port=$(ss -pant| grep ihttp|head -n1| awk '{printf $4}'| awk -F : '{printf $2}')
 
 key=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32)
 
