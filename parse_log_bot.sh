@@ -25,104 +25,78 @@ while IFS= read -r -d '' file; do
     main_files+=("$file")
 done < <(find "$httpd_logs2_dir" -type f -name "*access.log" -print0 2>/dev/null)
 
-
-
 # Добавляем пункт для директорий и ручного ввода
 main_files+=("/var/www/*/data/logs")
-#main_files+=("n) Ввести путь вручную")
+main_files+=("Ввести путь вручную")
 
 echo "Найдены следующие лог-файлы:"
 for i in "${!main_files[@]}"; do
     printf "%3d) %s\n" "$i" "${main_files[$i]}"
 done
 
-echo "n) Ввести путь вручную"
 echo "q) Выход"
-echo -n "Введите номер: "
+echo -n "Введите номер для анализа: "
 read main_choice
 
-read main_choice
 
 if [[ "$main_choice" == "q" ]]; then
     break
 fi
 
-if [[ "$main_choice" == "n" ]]; then
+if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ]; then
+    echo "Неверный номер."
+    continue
+fi
 
+selected_main="${main_files[$main_choice]}"
+
+# --- Новый пункт: ручной ввод пути ---
+if [ "$selected_main" = "Ввести путь вручную" ]; then
     echo -n "Введите полный путь к лог-файлу: "
     read manual_path
-
     if [ ! -f "$manual_path" ]; then
         echo "Файл не найден: $manual_path"
         continue
     fi
-
     selected_file="$manual_path"
 
-else
+# --- Выбор из /var/www/*/data/logs ---
+elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
+    sub_files_unsorted=()
+    for dir in "${www_root_logs_dirs[@]}"; do
+        [ -d "$dir" ] || continue
+        while IFS= read -r -d '' file; do
+            sub_files_unsorted+=("$file")
+        done < <(find "$dir" -type f \( -name "*access.log" -o -name "*.access.log*.gz" \) -print0 2>/dev/null)
+    done
 
-    if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || \
-       [ "$main_choice" -lt 0 ] || \
-       [ "$main_choice" -ge "${#main_files[@]}" ]; then
+    # Сортировка natural version
+    IFS=$'\n' sorted_files=($(printf "%s\n" "${sub_files_unsorted[@]}" | sort -V))
+    unset IFS
+
+    if [ ${#sorted_files[@]} -eq 0 ]; then
+        echo "В директориях нет подходящих файлов."
+        continue
+    fi
+
+    echo
+    echo "Файлы в /var/www/*/data/logs (отсортированы):"
+    for i in "${!sorted_files[@]}"; do
+        printf "%3d) %s\n" "$i" "${sorted_files[$i]}"
+    done
+
+    echo -n "Введите номер файла для анализа: "
+    read sub_choice
+
+    if ! [[ "$sub_choice" =~ ^[0-9]+$ ]] || [ "$sub_choice" -lt 0 ] || [ "$sub_choice" -ge "${#sorted_files[@]}" ]; then
         echo "Неверный номер."
         continue
     fi
 
-    selected_main="${main_files[$main_choice]}"
-
-    if [ "$selected_main" = "/var/www/*/data/logs" ]; then
-
-        sub_files_unsorted=()
-
-        for dir in "${www_root_logs_dirs[@]}"; do
-            [ -d "$dir" ] || continue
-
-            while IFS= read -r -d '' file; do
-                sub_files_unsorted+=("$file")
-            done < <(
-                find "$dir" -type f \
-                    \( -name "*access.log" -o -name "*.access.log*.gz" \) \
-                    -print0 2>/dev/null
-            )
-        done
-
-        IFS=$'\n' sorted_files=($(printf "%s\n" "${sub_files_unsorted[@]}" | sort -V))
-        unset IFS
-
-        if [ ${#sorted_files[@]} -eq 0 ]; then
-            echo "В директориях нет подходящих файлов."
-            continue
-        fi
-
-        echo
-        echo "Файлы в /var/www/*/data/logs (отсортированы):"
-
-        for i in "${!sorted_files[@]}"; do
-            printf "%3d) %s\n" "$i" "${sorted_files[$i]}"
-        done
-
-        echo -n "Введите номер файла для анализа: "
-        read sub_choice
-
-        if ! [[ "$sub_choice" =~ ^[0-9]+$ ]] || \
-           [ "$sub_choice" -lt 0 ] || \
-           [ "$sub_choice" -ge "${#sorted_files[@]}" ]; then
-            echo "Неверный номер."
-            continue
-        fi
-
-        selected_file="${sorted_files[$sub_choice]}"
-
-    else
-
-        selected_file="$selected_main"
-
-    fi
-
+    selected_file="${sorted_files[$sub_choice]}"
+else
+    selected_file="$selected_main"
 fi
-
-
-
 
 echo "Вы выбрали файл: $selected_file"
 echo
@@ -136,26 +110,6 @@ fi
 
 # Команда анализа
 cmd="$grep_cmd -oiE '\"[^\"]+\"' \"$selected_file\" | $grep_cmd -oiE '\\b[a-zA-Z0-9./;+_-]*(bot|meta|facebook)[a-zA-Z0-9./;+_-]*\\b' | sort | uniq -c | sort -nr | head -n20"
-tmp=$(mktemp)
-
-eval "$cmd" > "$tmp"
-
-
-while read -r count bot; do
-
-    if [[ "$selected_file" == *.gz ]]; then
-        last5=$(zgrep -iF "$bot" "$selected_file" | tail -5)
-    else
-        last5=$(grep -iF "$bot" "$selected_file" | tail -5)
-    fi
-
-    if echo "$last5" | grep -qEv '" (403|444|410|429) '; then
-        printf "%8s %s\n" "$count" "$bot"
-    fi
-
-done < "$tmp"
-
-rm -f "$tmp"
 
 echo "Будет выполнена команда:"
 echo "$cmd"
@@ -164,7 +118,7 @@ echo "Результат:"
 echo
 
 # Выполняем команду
-#eval "$cmd"
+eval "$cmd"
 
 echo
 read -p "Нажмите Enter для возврата в меню..."
