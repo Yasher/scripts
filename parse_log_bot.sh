@@ -25,15 +25,18 @@ while IFS= read -r -d '' file; do
     main_files+=("$file")
 done < <(find "$httpd_logs2_dir" -type f -name "*access.log" -print0 2>/dev/null)
 
+
+
 # Добавляем пункт для директорий и ручного ввода
 main_files+=("/var/www/*/data/logs")
-main_files+=("Ввести путь вручную")
+#main_files+=("n) Ввести путь вручную")
 
 echo "Найдены следующие лог-файлы:"
 for i in "${!main_files[@]}"; do
     printf "%3d) %s\n" "$i" "${main_files[$i]}"
 done
 
+echo "n) Ввести путь вручную"
 echo "q) Выход"
 echo -n "Введите номер для анализа: "
 read main_choice
@@ -43,15 +46,11 @@ if [[ "$main_choice" == "q" ]]; then
     break
 fi
 
-if ! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ]; then
-    echo "Неверный номер."
-    continue
-fi
 
-selected_main="${main_files[$main_choice]}"
 
 # --- Новый пункт: ручной ввод пути ---
-if [ "$selected_main" = "Ввести путь вручную" ]; then
+#if [ "$selected_main" = "Ввести путь вручную" ]; then
+if [[ "$main_choice" == "n" ]]; then
     echo -n "Введите полный путь к лог-файлу: "
     read manual_path
     if [ ! -f "$manual_path" ]; then
@@ -59,6 +58,23 @@ if [ "$selected_main" = "Ввести путь вручную" ]; then
         continue
     fi
     selected_file="$manual_path"
+
+
+if [[ "$main_choice" != "n" ]] && \
+(! [[ "$main_choice" =~ ^[0-9]+$ ]] || [ "$main_choice" -lt 0 ] || [ "$main_choice" -ge "${#main_files[@]}" ] ); then
+    echo "Неверный номер."
+    continue
+fi
+
+
+
+
+
+
+
+selected_main="${main_files[$main_choice]}"
+
+
 
 # --- Выбор из /var/www/*/data/logs ---
 elif [ "$selected_main" = "/var/www/*/data/logs" ]; then
