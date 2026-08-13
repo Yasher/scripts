@@ -1,8 +1,30 @@
 #!/bin/bash
 
-if [ -f /usr/local/mgr5/bin/core ]; then
-    PANEL="panel "$(/usr/local/mgr5/bin/core -V)
+#if [ -f /usr/local/mgr5/bin/core ]; then
+#    PANEL="panel "$(/usr/local/mgr5/bin/core -V)
+#fi
+
+if [ -d /usr/local/mgr5/ ]; then
+        #PANEL="$(/usr/local/mgr5/bin/core ispmgr -F) $(/usr/local/mgr5/bin/core ispmgr -V | cut -d "-" -f 1)" 
+        PANEL="panel "$(/usr/local/mgr5/bin/core -V)
+elif [ -d /usr/local/ispmgr/ ]; then
+        PANEL="ISPmanager 4"
+elif [ -d /usr/local/vesta/ ]; then
+        PANEL=VESTA
+elif [ -d /usr/local/cpanel/ ]; then
+        PANEL=CPANEL
+elif [ -f /etc/nginx/conf.d/bitrix.conf ] && [ -f /etc/debian_version ]; then
+        PANEL="Bitrix Env new"
+elif [ -d /etc/nginx/bx ] && [ -f /etc/debian_version ]; then
+        PANEL="Bitrix GT new"
+elif [ -s /opt/webdir/bin/bx-sites ]; then
+        PANEL=Bitrix
+elif [ -d /etc/nginx/bx ]; then
+        PANEL="Bitrix GT Turbo"
+else
+        PANEL="No panel"
 fi
+
 
 if [ -f /etc/redhat-release ]; then
 			#RELEASE=$(cat /etc/redhat-release | awk 'NR == 1 {print $1" "$3" "$4}')
@@ -74,12 +96,13 @@ ISP_MENU() {
     read -r -p "Choose: " payload
     case $payload in
       1)
-        bash <(wget -q -O- saaa.tk/scripts/ispmgr_go.sh) ;;
+        bash <(wget -q -O- syyy.ru/scripts/ispmgr_go.sh) ;;
       2)
         echo -ne "\n"
         echo "Перенос данных выполнен, проверить работу сайтов, не меняя записи ДНС, можно прописав на локальном ПК в файле hosts (C:\Windows\System32\drivers\etc\hosts) следующие данные:"
         # /usr/local/mgr5/sbin/mgrctl -m ispmgr webdomain | awk -F'ipaddr=|name=| ' '{print $NF, $2, "www." $2}'
-        for i in `/usr/local/mgr5/sbin/mgrctl -m ispmgr webdomain | awk -F'ipaddr=|name=| ' '{print $NF"::"$2}'`; do idn=$(echo $i|awk -F'::' '{print $2}'|xargs python -c 'import sys;print (sys.argv[1].decode("utf-8").encode("idna"))'); echo "`echo $i | awk -F'::' '{print $1}'` $idn www.$idn"; done
+        #for i in `/usr/local/mgr5/sbin/mgrctl -m ispmgr webdomain | awk -F'ipaddr=|name=| ' '{print $(NF-1)"::"$2}'`; do idn=$(echo $i|awk -F'::' '{print $NF}'|xargs python -c 'import sys;print (sys.argv[1].decode("utf-8").encode("idna"))'); echo "`echo $i | awk -F'::' '{print $1}'` $idn www.$idn"; done
+        for i in `/usr/local/mgr5/sbin/mgrctl -m ispmgr webdomain | awk -F'ipaddr=|name=| ' '{print $(NF-2)"::"$3}'`   ; do idn=$(echo $i|awk -F'::' '{print $NF}'|xargs python -c 'import sys;print (sys.argv[1].decode("utf-8").encode("idna"))'); echo "`echo $i | awk -F'::' '{print $1}'` $idn www.$idn"; done
         echo -ne "\n"
         echo "FirstVDS: Подробнее на нашем сайте - https://firstvds.ru/technology/check-after-transfer"
         echo -ne "ISPserver: Подробнее на нашем сайте - https://ispserver.ru/help/proverka-dostupnosti-sayta-posle-perenosa\n\n"
@@ -108,10 +131,12 @@ fi
             printf "Auto install ISPmanager beta (y/N)? ";
             read response
             if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-                wget https://notes.fvds.ru/share/install.5.sh && sh install.5.sh --silent --ignore-hostname --release beta ispmanager-lite
+                #wget https://notes.fvds.ru/share/install.5.sh && sh install.5.sh --silent --ignore-hostname --release beta ispmanager-lite
+                wget -O install.5.sh http://download.ispsystem.com/install.sh && sh install.5.sh --silent --ignore-hostname --release beta ispmanager-lite
                 echo -ne "${LGREEN}Done${DEF}\n"
             else
-                wget https://notes.fvds.ru/share/install.5.sh && sh install.5.sh
+                #wget https://notes.fvds.ru/share/install.5.sh && sh install.5.sh
+                wget -O install.5.sh http://download.ispsystem.com/install.sh && sh install.5.sh
                 echo -ne "${LGREEN}Done${DEF}\n"
             fi
         else
@@ -120,7 +145,7 @@ fi
         ;;
       5)
         echo -ne "\n"
-        /usr/local/mgr5/sbin/mgrctl -m ispmgr webdomain | awk '{print $1}' | sed -s 's/name=//g'
+        /usr/local/mgr5/sbin/mgrctl -m ispmgr webdomain | awk '{print $2}' | sed -s 's/name=//g'
         ;;
       6)
         read -r -p "Do you really want it? (y/N)?? " response
@@ -178,7 +203,7 @@ BITRIX_MENU() {
     script_bitrix[4]='Скачать pusti.php'
     script_bitrix[5]='Скачать скрипты для wildcard LE'
     script_bitrix[6]='Скачать restore.php'
-    script_bitrix[9]='DDoS смена ip'
+   # script_bitrix[9]='DDoS смена ip'
 
     for index in ${!script_bitrix[*]}; do
       printf "%4d: %s\n" $index "${script_bitrix[$index]}"
@@ -196,13 +221,13 @@ BITRIX_MENU() {
         ./admin.sh
         ;;
       2)
-        bash <(wget -q -O- saaa.tk/scripts/bitrix-env-ftp.sh) ;;
+        bash <(wget -q -O- syyy.ru/scripts/bitrix-env-ftp.sh) ;;
       3)
         wget http://rep.fvds.ru/cms/bitrixinstaller.tgz
         echo -ne "${LGREEN}Done${DEF}\\n"
         ;;
       4)
-        wget -q http://saaa.tk/pusti.txt
+        wget -q http://syyy.ru/pusti.txt
         mv pusti.txt pusti.php
         echo -ne "${LGREEN}Done${DEF}\\n"
         ;;
@@ -215,26 +240,6 @@ BITRIX_MENU() {
       6)
         wget http://www.1c-bitrix.ru/download/scripts/restore.php
         echo -ne "${LGREEN}Done${DEF}\\n"
-        ;;
-      9)
-        ip a;
-        old_ip=''
-        new_ip=''
-
-        while [ ! $(echo $old_ip | grep -oE '([0-9]{1,3}[\.]){3}[0-9]{1,3}') ];do printf "old ip: " && read old_ip ;  done
-        while [ ! $(echo $new_ip | grep -oE '([0-9]{1,3}[\.]){3}[0-9]{1,3}') ];do printf "new ip: " && read new_ip ;  done
-        
-        printf 'Меняем '${old_ip}' на '$new_ip' ? '
-        read STATE;
-
-        if ([ $STATE = "y" ] || [ $STATE = "yes" ])
-          then
-        	find /etc/ -type f -exec sed -i 's/'$old_ip'/'$new_ip'/g' {} \;
-        	sed -i 's/'$old_ip'/'$new_ip'/g' /usr/local/mgr5/etc/ihttpd.conf
-            find /var/named/ -type f -exec sed -i 's/'$old_ip'/'$new_ip'/g' {} \;
-            service ihttpd restart
-            sqlite3 /usr/local/mgr5/etc/ispmgr.db "select * from webdomain_ipaddr"|grep $old_ip|awk -F"|" '{print $1}'|while read line; do  sqlite3 /usr/local/mgr5/etc/ispmgr.db "update webdomain_ipaddr set value='$(echo $new_ip)' where id=$line";done
-          fi
         ;;
       *)
         echo -ne "${LRED}Unknown choose${DEF}\n" ;;
@@ -316,29 +321,48 @@ echo ""
 sqlite3install
     fi
 
-ip a
+#ip a
+#
+#printf "oldip: ";
+#read oldip;
+#
+#printf "newip: ";
+#read newip;
+#echo
+#echo "Меняем" $oldip "на" $newip "?"
+#
+#read STATE;
+#if ([ $STATE = "y" ] || [ $STATE = "yes" ])
+#    then
+#        find /etc/ -type f -exec sed -i 's/'$oldip'/'$newip'/g' {} \;
+#        sed -i 's/'$oldip'/'$newip'/g' /usr/local/mgr5/etc/ihttpd.conf
+#        find /var/named/ -type f -exec sed -i 's/'$oldip'/'$newip'/g' {} \;
+#        service ihttpd restart
+#        cp -a /usr/local/mgr5/etc/ispmgr.db /usr/local/mgr5/etc/ispmgr.db.bak77
+#        sqlite3 /usr/local/mgr5/etc/ispmgr.db "update webdomain_ipaddr set value = '$newip' where id > 0;"
+#    else
+#        echo "Потом";
+#        exit 0;
+#fi
+        ip a;
+        old_ip=''
+        new_ip=''
 
-printf "oldip: ";
-read oldip;
+        while [ ! $(echo $old_ip | grep -oE '([0-9]{1,3}[\.]){3}[0-9]{1,3}') ];do printf "old ip: " && read old_ip ;  done
+        while [ ! $(echo $new_ip | grep -oE '([0-9]{1,3}[\.]){3}[0-9]{1,3}') ];do printf "new ip: " && read new_ip ;  done
+        
+        printf 'Меняем '${old_ip}' на '$new_ip' ? '
+        read STATE;
 
-printf "newip: ";
-read newip;
-echo
-echo "Меняем" $oldip "на" $newip "?"
-
-read STATE;
-if ([ $STATE = "y" ] || [ $STATE = "yes" ])
-    then
-        find /etc/ -type f -exec sed -i 's/'$oldip'/'$newip'/g' {} \;
-        sed -i 's/'$oldip'/'$newip'/g' /usr/local/mgr5/etc/ihttpd.conf
-        find /var/named/ -type f -exec sed -i 's/'$oldip'/'$newip'/g' {} \;
-        service ihttpd restart
-        cp -a /usr/local/mgr5/etc/ispmgr.db /usr/local/mgr5/etc/ispmgr.db.bak77
-        sqlite3 /usr/local/mgr5/etc/ispmgr.db "update webdomain_ipaddr set value = '$newip' where id > 0;"
-    else
-        echo "Потом";
-        exit 0;
-fi
+        if ([ $STATE = "y" ] || [ $STATE = "yes" ])
+          then
+        	find /etc/ -type f -exec sed -i 's/'$old_ip'/'$new_ip'/g' {} \;
+        	sed -i 's/'$old_ip'/'$new_ip'/g' /usr/local/mgr5/etc/ihttpd.conf
+            find /var/named/ -type f -exec sed -i 's/'$old_ip'/'$new_ip'/g' {} \;
+            service ihttpd restart
+            #sqlite3 /usr/local/mgr5/etc/ispmgr.db "select * from webdomain_ipaddr"|grep $old_ip|awk -F"|" '{print $1}'|while read line; do  sqlite3 /usr/local/mgr5/etc/ispmgr.db "update webdomain_ipaddr set value='$(echo $new_ip)' where id=$line";done
+            sqlite3 /usr/local/mgr5/etc/ispmgr.db "update webdomain_ipaddr set value='$new_ip' where value='$old_ip'"
+          fi
         ;;
       6)
       cat <<EOF
@@ -380,7 +404,7 @@ OTHERS_MENU() {
     script_others[2]='mysql_upgrade_centos_7'
     script_others[3]='tweaker_mgr5'
     script_others[4]='Список соединений на 80/443 порты'
-    script_others[5]='Сбросить пароль MySQL'
+    script_others[5]='Стата по MySQL'
     script_others[6]='Список юзер и пасс из mysql'
     script_others[7]='Запустить python web-сервер'
     script_others[8]='old_script_version'
@@ -446,7 +470,9 @@ OTHERS_MENU() {
         netstat -an | grep -E '\:80|\:443'| awk '{print $5}' | grep -Eo '[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}' | sort | uniq -c | sort -n
         ;;
       5)
-        bash <(wget -q -O- https://gitlab.hoztnode.net/admins/scripts/raw/master/mysp.sh)
+        #bash <(wget -q -O- https://gitlab.hoztnode.net/admins/scripts/raw/master/mysp.sh)
+        #https://github.com/CHERTS/linux-scripts/tree/master/mysql
+        bash <(wget -q -O- syyy.ru/scripts/mysql-stat.sh)
         ;;
       6)
         echo -ne "\n"
@@ -457,7 +483,7 @@ OTHERS_MENU() {
         python -m SimpleHTTPServer 5432
         ;;
       8)
-        bash <(wget -q -O- saaa.tk/tool_old.sh)
+        bash <(wget -q -O- syyy.ru/tool_old.sh)
         ;;
       9)
         SCRIPTS_MENU ;;
@@ -483,23 +509,27 @@ OTHERS_MENU() {
             if [ $STATE = "1" ] 
             then
                 find /root/support/$(date  +%Y%m%d) -delete
-                python <(wget -q -O- saaa.tk/scripts/backup.py)
+                python3 <(wget -q -O- syyy.ru/scripts/backup.py)
                 if [ $? -ne 0 ]; then
-                    python2 <(wget -q -O- saaa.tk/scripts/backup.py)
+                    python <(wget -q -O- syyy.ru/scripts/backup_py27.py)
                 fi
+                #python <(wget -q -O- syyy.ru/scripts/backup.py)
+                #if [ $? -ne 0 ]; then
+                 #   python2 <(wget -q -O- syyy.ru/scripts/backup.py)
+                #fi
             fi
             if [ $STATE = "2" ] 
             then
                 mv /root/support/$(date  +%Y%m%d) /root/support/$(date  +%Y%m%d)_old
-                python <(wget -q -O- saaa.tk/scripts/backup.py)
+                python3 <(wget -q -O- syyy.ru/scripts/backup.py)
                 if [ $? -ne 0 ]; then
-                    python2 <(wget -q -O- saaa.tk/scripts/backup.py)
+                    python <(wget -q -O- syyy.ru/scripts/backup_py27.py)
                 fi
             fi
       else
-        python <(wget -q -O- saaa.tk/scripts/backup.py)
+        python3 <(wget -q -O- syyy.ru/scripts/backup.py)
         if [ $? -ne 0 ]; then
-            python2 <(wget -q -O- saaa.tk/scripts/backup.py)
+            python <(wget -q -O- syyy.ru/scripts/backup_py27.py)
         fi
       fi
       #break
@@ -528,7 +558,7 @@ OTHERS_MENU() {
     4)
       BITRIX_MENU ;;
     5)
-      bash <(wget -q -O- saaa.tk/scripts/add_move_key.sh) ;;
+      bash <(wget -q -O- syyy.ru/scripts/add_move_key.sh) ;;
       51)
         string='AAAAB3NzaC1yc2EAAAADAQABAAABAQDCai7ZIatSdotSieBF3os8SjtXsL7FWF81DQTgZFHGcMYGRN2mGKX3JhR9IZUQ7OBVJEZwC4QJPqxM2EAbIyB29XsZshyTPA9Ef6ZQPChwX6W1T9TEsf/3rWYBixyYyf+6cl87GvPuEL7NJBXWF6pnFgmpTDKCHJwuj3xssBpGW9GG3fSJBICBCAff3NaEqt30QH86nSkaLuzIWByEYDrPFBSb+uL7YWhw/73ixXx74i63JIUQ44pjJ1to0e5m/FBlFzg9c2H24sBPrDeM+jzxaC7SBh+sku5U8UH+pTh4Dnj97Ai3eG7OGp3nxdEzgSKH+CmLxHvR6gamRUgSMVdV'
         if [[  $(cat /root/.ssh/authorized_keys) != *$string* ]]; then
@@ -563,7 +593,7 @@ OTHERS_MENU() {
         fi
         ;;
     6)
-      bash <(wget -q -O- saaa.tk/scripts/srv_info.sh) ;;
+      bash <(wget -q -O- syyy.ru/scripts/srv_info.sh) ;;
     7)
       if [ -f /etc/redhat-release ]; then
 			#RELEASE=$(cat /etc/redhat-release | awk 'NR == 1 {print $1" "$3" "$4}')
@@ -607,8 +637,18 @@ fi
       echo -ne "strace -s 1024 -f \$(pidof $apache | sed 's/\([0-9]*\)/\-p \1/g')\n"
       ;;
     8)
-      perl <(wget -q -O- http://saaa.tk/scripts/mysqltuner.pl)
+      #perl <(wget -q -O- http://syyy.ru/scripts/mysqltuner.pl)
      # echo
+      #printf "   1: new from git major/MySQLTuner-perl\n   2: old";
+      #echo
+      #read STATE;
+       # if [ $STATE = "1" ] ; then
+          perl <(wget -q -O- https://raw.githubusercontent.com/major/MySQLTuner-perl/master/mysqltuner.pl)
+       # elif [ $STATE = "2" ]; then
+        #  perl <(wget -q -O- http://syyy.ru/scripts/mysqltuner.pl)
+        #fi
+     
+     ##########
       ;;
     9)
       OTHERS_MENU ;;
