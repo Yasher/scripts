@@ -1,4 +1,3 @@
-```bash
 #!/usr/bin/env bash
 
 # check and enable http/2
@@ -91,4 +90,3 @@ if nginx -T 2>/dev/null |
         fi
     fi
 fi
-```
